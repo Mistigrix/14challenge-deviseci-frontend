@@ -60,7 +60,7 @@
 
           <div class="result-box">
             <p class="result-label">Résultat</p>
-            <p class="result-value">{{ toC?.symbol }} {{ formatNum(converted) }}</p>
+            <p class="result-value">{{ toC.symbol }} {{ formatNum(converted) }}</p>
             <p class="result-rate">1 {{ fromCurrency }} = {{ formatNum(rate) }} {{ toCurrency }}</p>
           </div>
 
@@ -100,7 +100,7 @@
             <p class="chart-legend">15 dernières heures</p>
           </div>
 
-          
+
           <div class="card rates-card">
             <p class="card-sublabel">Taux populaires (base {{ fromCurrency }})</p>
             <div class="rates-grid">
