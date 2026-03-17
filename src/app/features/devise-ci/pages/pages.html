@@ -6,6 +6,14 @@
     (darkModeToggle)="darkMode = !darkMode">
   </app-navbar>
 
+  <!-- Loader global pour les devises -->
+  @if (isLoadingCurrencies && !dataLoaded) {
+  <div class="global-loader">
+    <div class="loader-spinner"></div>
+    <p>Chargement des devises...</p>
+  </div>
+  }
+
   @if (page === 'converter') {
   <div class="page-container">
 
@@ -20,9 +28,9 @@
 
         <div class="field-group">
           <label class="field-label">De</label>
-          <select class="styled-select" [(ngModel)]="fromCurrency" name="from">
+          <select class="styled-select" [(ngModel)]="fromCurrency" name="from" (change)="convertViaApi()">
             @for (c of currencies; track c.code) {
-            <option [value]="c.code">{{ c.code }} - {{ c.name }}</option>
+            <option [value]="c.code">{{ c.code }} - {{ c.name || c.code }}</option>
             }
           </select>
         </div>
@@ -39,17 +47,25 @@
 
         <div class="field-group">
           <label class="field-label">Vers</label>
-          <select class="styled-select" [(ngModel)]="toCurrency" name="to">
+          <select class="styled-select" [(ngModel)]="toCurrency" name="to" (change)="convertViaApi()">
             @for (c of currencies; track c.code) {
-            <option [value]="c.code">{{ c.code }} - {{ c.name }}</option>
+            <option [value]="c.code">{{ c.code }} - {{ c.name || c.code }}</option>
             }
           </select>
         </div>
 
         <div class="result-box">
           <p class="result-label">Résultat</p>
-          <p class="result-value">{{ toC.symbol }} {{ formatNum(converted) }}</p>
+
+          <!-- Loader pour la conversion -->
+          @if (isLoadingConversion) {
+          <div class="result-loader">
+            <div class="loader-spinner-small"></div>
+          </div>
+          } @else {
+          <p class="result-value">{{ toC.symbol || '' }} {{ formatNum(converted) }}</p>
           <p class="result-rate">1 {{ fromCurrency }} = {{ formatNum(rate) }} {{ toCurrency }}</p>
+          }
         </div>
 
         <div class="action-row">
@@ -68,12 +84,12 @@
               <p class="card-sublabel">Taux du jour</p>
               <div class="pair-display">
                 <div class="flag-badge"
-                  [style.background]="'linear-gradient(90deg, ' + getFlagColors(fromC.flag)[0] + ' 33%, ' + getFlagColors(fromC.flag)[1] + ' 33% 66%, ' + getFlagColors(fromC.flag)[2] + ' 66%)'">
+                  [style.background]="'linear-gradient(90deg, ' + getFlagColors(fromC.flag || 'CI')[0] + ' 33%, ' + getFlagColors(fromC.flag || 'CI')[1] + ' 33% 66%, ' + getFlagColors(fromC.flag || 'CI')[2] + ' 66%)'">
                 </div>
                 {{ fromCurrency }}
                 <span class="arrow">→</span>
                 <div class="flag-badge"
-                  [style.background]="'linear-gradient(90deg, ' + getFlagColors(toC.flag)[0] + ' 33%, ' + getFlagColors(toC.flag)[1] + ' 33% 66%, ' + getFlagColors(toC.flag)[2] + ' 66%)'">
+                  [style.background]="'linear-gradient(90deg, ' + getFlagColors(toC.flag || 'CI')[0] + ' 33%, ' + getFlagColors(toC.flag || 'CI')[1] + ' 33% 66%, ' + getFlagColors(toC.flag || 'CI')[2] + ' 66%)'">
                 </div>
                 {{ toCurrency }}
               </div>
@@ -90,6 +106,14 @@
 
         <div class="card rates-card">
           <p class="card-sublabel">Taux populaires (base {{ fromCurrency }})</p>
+
+          <!-- Loader pour les taux -->
+          @if (isLoadingRates) {
+          <div class="rates-loader">
+            <div class="loader-spinner-small"></div>
+            <p>Mise à jour des taux...</p>
+          </div>
+          } @else {
           <div class="rates-grid">
             @for (c of otherCurrencies; track c.code) {
             <div class="rate-item" [class.selected]="toCurrency === c.code" (click)="selectToCurrency(c.code)">
@@ -100,11 +124,12 @@
                 <span class="rate-code">{{ c.code }}</span>
               </div>
               <span class="rate-value" [class.orange]="toCurrency === c.code">
-                {{ formatNum(c.rate / fromC.rate) }}
+                {{ formatNum((c.rate || 0) / (fromC.rate || 1)) }}
               </span>
             </div>
             }
           </div>
+          }
         </div>
 
       </div>
@@ -115,6 +140,7 @@
         <p class="card-title">Dernières conversions</p>
         <span class="link-orange" (click)="page = 'history'">Voir tout →</span>
       </div>
+
       <div class="history-scroll">
         @for (h of convHistory.slice(0, 4); track $index) {
         <div class="history-mini-card">
@@ -136,6 +162,14 @@
   <div class="page-container">
     <h2 class="page-title">Taux en direct</h2>
     <p class="page-subtitle">Base : 1 XOF (Franc CFA)</p>
+
+    <!-- Loader pour les taux -->
+    @if (isLoadingRates) {
+    <div class="rates-page-loader">
+      <div class="loader-spinner"></div>
+      <p>Chargement des taux en direct...</p>
+    </div>
+    } @else {
     <div class="rates-page-grid">
       @for (c of ratesCurrencies; track c.code) {
       <div class="card rate-full-card" (click)="fromCurrency='XOF'; toCurrency=c.code; page='converter'">
@@ -154,7 +188,7 @@
         <div class="rate-card-body">
           <div>
             <p class="rate-card-label">1 XOF =</p>
-            <p class="rate-card-value">{{ c.symbol }} {{ formatNum(c.rate) }}</p>
+            <p class="rate-card-value">{{ c.symbol || '' }} {{ formatNum(c.rate) }}</p>
           </div>
           <div class="sparkline">
             @for (bar of getRandomBars(); track $index) {
@@ -165,6 +199,7 @@
       </div>
       }
     </div>
+    }
   </div>
   }
 
@@ -173,6 +208,7 @@
     <h2 class="page-title">Historique</h2>
     <p class="page-subtitle">{{ convHistory.length }} conversion{{ convHistory.length > 1 ? 's' : '' }} enregistrée{{
       convHistory.length > 1 ? 's' : '' }}</p>
+
     <div class="history-list">
       @for (h of convHistory; track $index) {
       <div class="card history-row">
